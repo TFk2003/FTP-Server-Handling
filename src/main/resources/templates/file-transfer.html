@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>File Transfer</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="file-container">
+  <h1>File Transfer</h1>
+
+  <!-- Success Message -->
+  <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+
+  <!-- Error Messages -->
+  <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+  <form th:action="@{/files/upload}" method="post" enctype="multipart/form-data">
+    <div class="form-group">
+      <label for="file">Select a file to upload:</label>
+      <input type="file" id="file" name="file" required>
+    </div>
+    <button type="submit">Upload</button>
+  </form>
+
+  <h2>Files On Server</h2>
+  <div th:if="${files != null and !files.isEmpty()}">
+    <table class="file-table">
+      <thead>
+      <tr>
+        <th>File Name</th>
+        <th>Size</th>
+        <th>Action</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="file : ${files}">
+        <td th:text="${file.name}"></td>
+        <td th:text="${#numbers.formatDecimal(file.size/1024, 1, 2)} + ' KB'"></td>
+        <td><a th:href="@{${file.url}}" download>Download</a></td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+  <div th:if="${files == null or files.isEmpty()}" class="no-files">
+    You haven't uploaded any files yet.
+  </div>
+
+  <div class="back-link">
+    <a href="/chat">Back to Chat</a>
+  </div>
+</div>
+</body>
+</html>
