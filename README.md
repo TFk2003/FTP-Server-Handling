@@ -30,7 +30,7 @@ A simple web-based Chat Application built with Spring Boot and Thymeleaf that su
 2. Install and configure FileZilla Server locally (FTP user, FTP path)
 3. Configure `application.properties` for database and FTP details
 4. Start the Spring Boot application
-5. Open `http://localhost:8080/login` to start using the portal
+5. Open `http://localhost:8081/login` to start using the portal
 
 ## 🛠 Technologies Used
 
