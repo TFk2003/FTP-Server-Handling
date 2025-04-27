@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Portal - Chat Room</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="chat-container">
+    <div class="chat-header">
+        <h1>Chat Room: <span id="room" th:text="${room}">general</span></h1>
+        <div class="user-info">Logged in as: <span id="username" th:text="${username}">user</span></div>
+    </div>
+
+    <div class="chat-sidebar">
+        <h3>Rooms</h3>
+        <ul>
+            <li><a href="?room=general">General</a></li>
+            <li><a href="?room=random">Random</a></li>
+            <li><a href="?room=help">Help</a></li>
+        </ul>
+
+        <h3>File Transfer</h3>
+        <a href="/files/upload">Upload Files</a>
+    </div>
+
+    <div class="chat-messages" id="messageArea">
+        <!-- Messages will appear here -->
+    </div>
+
+    <div class="chat-input">
+        <input type="text" id="message" placeholder="Type your message here...">
+        <button id="sendButton">Send</button>
+        <button onclick="document.getElementById('fileInput').click()">Upload File</button>
+    </div>
+    <div class="logout-link">
+        <a th:href="@{/logout}">Logout</a>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.2/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script src="/js/chat.js"></script>
+</body>
+</html>
