@@ -3,13 +3,10 @@ package org.example.cnproject.Controller;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import org.example.cnproject.DTO.LoginRequest;
 import org.example.cnproject.Model.User;
 import org.example.cnproject.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -22,7 +19,7 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    private BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder(12);
+    private final BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder(12);
 
     @GetMapping("/login")
     public String showLoginPage(Model model) {

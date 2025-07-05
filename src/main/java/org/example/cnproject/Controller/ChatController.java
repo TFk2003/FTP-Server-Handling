@@ -1,12 +1,8 @@
 package org.example.cnproject.Controller;
 
-import jakarta.servlet.http.HttpSession;
 import org.example.cnproject.DTO.ChatMessage;
 import org.example.cnproject.Model.ChatRoom;
 import org.example.cnproject.Model.Message;
-import org.example.cnproject.Model.User;
-import org.example.cnproject.Repository.ChatRoomRepository;
-import org.example.cnproject.Repository.UserRepository;
 import org.example.cnproject.Service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -19,8 +15,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.List;
+import java.util.Objects;
 
 @Controller
 public class ChatController {
@@ -31,7 +27,7 @@ public class ChatController {
     @MessageMapping("/chat.sendMessage")
     @SendTo("/topic/public")
     public ChatMessage sendMessage(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
-        String sender = (String)  headerAccessor.getSessionAttributes().get("username");
+        String sender = (String)  Objects.requireNonNull(headerAccessor.getSessionAttributes()).get("username");
         chatMessage.setSender(sender);
         chatService.sendMessage(chatMessage);
         chatService.saveMessage(chatMessage);
@@ -41,7 +37,7 @@ public class ChatController {
     @SendTo("/topic/public")
     public ChatMessage addUser(@Payload ChatMessage chatMessage,
                                SimpMessageHeaderAccessor headerAccessor) {
-        headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
+        Objects.requireNonNull(headerAccessor.getSessionAttributes()).put("username", chatMessage.getSender());
         return chatMessage;
     }
     @GetMapping("/chat")
