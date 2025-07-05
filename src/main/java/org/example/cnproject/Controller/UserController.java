@@ -1,30 +1,46 @@
 package org.example.cnproject.Controller;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.example.cnproject.DTO.LoginRequest;
 import org.example.cnproject.Model.User;
 import org.example.cnproject.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 @Controller
 public class UserController {
+
     @Autowired
     private UserService userService;
+
+    private BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder(12);
+
     @GetMapping("/login")
-    public String showLoginPage() {
+    public String showLoginPage(Model model) {
+        model.addAttribute("loginRequest", new LoginRequest());
         return "login";
     }
+
     @PostMapping("/login")
-    public String login(@RequestParam String username, @RequestParam String password, Model model,HttpSession session) {
-        User user = userService.findByUsername(username);
-        if (user != null && user.getPassword().equals(password)) {
-            session.setAttribute("username", username);
+    public String login(@ModelAttribute LoginRequest loginRequest, Model model) {
+        try{
+            String jwtToken = userService.verify(loginRequest);
+            System.out.println("Token generated: " + jwtToken);
             return "redirect:/chat";
         }
-        model.addAttribute("error", "Invalid username or password");
-        return "login";
+        catch (Exception e) {
+            System.out.println("Login failed: " + e.getMessage());
+            return "login";
+        }
     }
     @GetMapping("/register")
     public String showRegisterPage() {
@@ -43,15 +59,22 @@ public class UserController {
 
         User user = new User();
         user.setUsername(username);
-        user.setPassword(password);
+        user.setPassword(bCryptPasswordEncoder.encode(password));
         user.setEmail(email);
         userService.registerUser(user);
 
         return "redirect:/login";
     }
+
     @GetMapping("/logout")
-    public String handleLogout(HttpSession session) {
-        session.invalidate();  // Clears the session
+    public String handleLogout(HttpServletRequest request, HttpServletResponse response) {
+        SecurityContextHolder.clearContext();
+        Cookie cookie = new Cookie("JWT", null);
+        cookie.setMaxAge(0);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        response.addCookie(cookie);
+        response.setHeader("Authorization", "");
         return "redirect:/login";
     }
 }

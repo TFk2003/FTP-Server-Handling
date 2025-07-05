@@ -10,6 +10,8 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -23,16 +25,20 @@ import java.util.List;
 @Controller
 @RequestMapping("/files")
 public class FileController {
+
     @Autowired
     private FTPService ftpService;
+
     @Autowired
     private UserService userService;
+
     @GetMapping("/upload")
-    public String showUploadPage(Model model, HttpSession session) {
-        String username = session.getAttribute("username").toString();
-        if (username == null) {
+    public String showUploadPage(Model model, @AuthenticationPrincipal UserDetails  userDetails) {
+        if (userDetails == null) {
             return "redirect:/login";
         }
+        String username = userDetails.getUsername();
+
         try {
             List<User> users = userService.findAllUsers();
             List<FileInfo> files = new ArrayList<>();
@@ -49,11 +55,13 @@ public class FileController {
 
     @PostMapping("/upload")
     public String handleFileUpload(@RequestParam("file") MultipartFile file,
-                                   HttpSession session, Model model) {
-        String username = session.getAttribute("username").toString();
-        if (username == null) {
+                                   @AuthenticationPrincipal UserDetails userDetails, Model model) {
+        if (userDetails == null) {
             return "redirect:/login";
         }
+
+        String username = userDetails.getUsername();
+
         if (file.isEmpty()) {
             model.addAttribute("error", "Please select a file to upload");
             return "file-transfer";

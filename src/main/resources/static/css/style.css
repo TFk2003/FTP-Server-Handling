@@ -300,3 +300,11 @@ button:hover {
     background-color: #f2dede;
     border-color: #ebccd1;
 }
+
+#loginForm {
+    pointer-events: none; /* Disable all form interactions */
+}
+
+#loginForm > * {
+    pointer-events: auto; /* Re-enable for children */
+}

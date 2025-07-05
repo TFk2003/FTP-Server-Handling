@@ -26,20 +26,28 @@
 
     <div class="chat-messages" id="messageArea">
         <!-- Messages will appear here -->
+<!--        <div th:each="msg : ${messagesHistory}" class="message chat-message">-->
+<!--            <strong th:text="${msg.sender.username} + ': '"></strong>-->
+<!--            <span th:text="${msg.content}"></span>-->
+<!--            <span class="timestamp" th:text="${#dates.format(msg.timestamp, 'HH:mm')}"></span>-->
+<!--        </div>-->
     </div>
 
     <div class="chat-input">
         <input type="text" id="message" placeholder="Type your message here...">
         <button id="sendButton">Send</button>
         <button onclick="document.getElementById('fileInput').click()">Upload File</button>
+        <button id="loadHistoryButton">Load History</button>
+        <input type="file" id="fileInput" style="display: none;">
     </div>
     <div class="logout-link">
-        <a th:href="@{/logout}">Logout</a>
+        <a onclick="logout()">Logout</a>
     </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.2/sockjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-<script src="/js/chat.js"></script>
+<script src="/js/chat.js" defer></script>
+<script src="/js/logout.js" defer></script>
 </body>
 </html>

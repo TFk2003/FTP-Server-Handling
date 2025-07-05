@@ -8,15 +8,19 @@ import java.util.Date;
 @Entity
 @Data
 public class Message {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @ManyToOne
-    @JoinColumn(name = "chatroom_id")
+    @JoinColumn(name = "chatroom_id",  nullable = false)
     private ChatRoom chatRoom;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User sender;
+
     private String filePath;
 
     private String content;
