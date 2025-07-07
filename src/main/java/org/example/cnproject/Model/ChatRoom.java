@@ -2,11 +2,15 @@ package org.example.cnproject.Model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Set;
 
 @Entity
 @Data
+@ToString(exclude = {"users", "messages"})
+@EqualsAndHashCode(exclude = {"users", "messages"})
 public class ChatRoom {
 
     @Id

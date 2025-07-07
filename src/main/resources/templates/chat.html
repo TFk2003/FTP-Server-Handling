@@ -4,44 +4,48 @@
     <meta charset="UTF-8">
     <title>Chat Portal - Chat Room</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="body">
 <div class="chat-container">
     <div class="chat-header">
-        <h1>Chat Room: <span id="room" th:text="${room}">general</span></h1>
-        <div class="user-info">Logged in as: <span id="username" th:text="${username}">user</span></div>
+        <h1 id="heading">Chat Room: <span id="room" th:text="${room}">General</span></h1>
+        <div class="user-info">
+            <i class="fas fa-user"></i><span id="username" th:text="${username}">user</span>
+        </div>
     </div>
 
     <div class="chat-sidebar">
-        <h3>Rooms</h3>
+        <h3>Chat Rooms</h3>
         <ul>
-            <li><a href="?room=general">General</a></li>
-            <li><a href="?room=random">Random</a></li>
-            <li><a href="?room=help">Help</a></li>
+            <li><a href="?room=general" class="room-link" th:data-user="General" th:classappend="${room == 'general'} ? 'active' : ''">General</a></li>
+            <li><a href="?room=random" class="room-link" th:data-user="Random" th:classappend="${room == 'random'} ? 'active' : ''">Random</a></li>
+            <li><a href="?room=help" class="room-link" th:data-user="Help" th:classappend="${room == 'help'} ? 'active' : ''">Help</a></li>
+        </ul>
+
+        <h3>Private Chats</h3>
+        <ul id="privateUsers">
+            <li th:each="user : ${users}" th:if="${user.username} != ${username}">
+                <a href="#" class="private-link"  th:data-user="${user.username}" th:text="${user.username}"></a>
+            </li>
         </ul>
 
         <h3>File Transfer</h3>
-        <a href="/files/upload">Upload Files</a>
+        <a href="/files/upload"><i class="fas fa-file-upload"></i> Upload Files</a>
+
+        <a class="logout-link" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 
     <div class="chat-messages" id="messageArea">
-        <!-- Messages will appear here -->
-<!--        <div th:each="msg : ${messagesHistory}" class="message chat-message">-->
-<!--            <strong th:text="${msg.sender.username} + ': '"></strong>-->
-<!--            <span th:text="${msg.content}"></span>-->
-<!--            <span class="timestamp" th:text="${#dates.format(msg.timestamp, 'HH:mm')}"></span>-->
-<!--        </div>-->
     </div>
 
     <div class="chat-input">
-        <input type="text" id="message" placeholder="Type your message here...">
-        <button id="sendButton">Send</button>
-        <button onclick="document.getElementById('fileInput').click()">Upload File</button>
-        <button id="loadHistoryButton">Load History</button>
-        <input type="file" id="fileInput" style="display: none;">
-    </div>
-    <div class="logout-link">
-        <a onclick="logout()">Logout</a>
+        <input type="text" id="message" placeholder="Type your message here..." autocomplete="off">
+        <button id="sendButton"><i class="fas fa-paper-plane"></i> Send</button>
+        <button onclick="document.getElementById('fileInput').click()" class="secondary">
+            <i class="fas fa-file-upload"></i> File
+        </button>
+        <input type="file" id="fileInput">
     </div>
 </div>
 

@@ -6,6 +6,7 @@ import lombok.Data;
 public class ChatMessage {
     private String content;
     private String sender;
+    private String receiver;
     private String chatRoom;
     private String timestamp;
     private String fileUrl;

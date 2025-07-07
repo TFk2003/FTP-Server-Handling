@@ -1,49 +1,25 @@
-// const urlParams = new URLSearchParams(window.location.search);
-// let token = urlParams.get('token') || localStorage.getItem("jwt");
-//
-// if (!token) {
-//     window.location.href = "/login";
-//     throw new Error("No token found");
-// }
-//
-// // Store token if it came from URL
-// if (urlParams.get('token')) {
-//     localStorage.setItem("jwt", token);
-//     // Clean URL
-//     window.history.replaceState({}, document.title, "/chat");
-// }
-//
-// // Load chat content
-// fetch("/chat", {
-//     headers: {
-//         "Authorization": `Bearer ${token}`
-//     }
-// })
-//     .then(response => {
-//         if (!response.ok) throw new Error("Unauthorized");
-//         return response.text();
-//     })
-//     .then(data => {
-//         document.getElementById("content").innerHTML = data;
-//     })
-//     .catch(error => {
-//         console.error("Error:", error);
-//         localStorage.removeItem("jwt");
-//         window.location.href = "/login";
-//     });
 let stompClient = null;
+let currentRoomSubscription = null;
+
 function connect() {
+
     const username = document.getElementById('username').textContent;
     const room = document.getElementById('room').textContent;
 
     const socket = new SockJS('/ws');
     stompClient = Stomp.over(socket);
+
     stompClient.connect({}, function(frame) {
         console.log('Connected: ' + frame);
 
         // Subscribe to the specific room topic
-        stompClient.subscribe(`/topic/${room}`, function(message) {
-            onMessageReceived(JSON.parse(message.body));
+        // stompClient.subscribe(`/topic/${room}`, function(message) {
+        //     onMessageReceived(JSON.parse(message.body));
+        // });
+
+        stompClient.subscribe('/user/queue/private', function(message) {
+            const privateMsg = JSON.parse(message.body);
+            onMessageReceived(privateMsg); // show in chat window or popup
         });
 
         // Tell server the user has joined
@@ -56,18 +32,28 @@ function connect() {
         stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
     }, onError);
 }
+
 function onError(error) {
+
     console.error('Error:', error);
     setTimeout(connect, 5000);
 }
 
 function sendMessage() {
+
     const username = document.getElementById('username').textContent;
     const room = document.getElementById('room').textContent;
     const messageInput = document.getElementById('message');
     const messageContent = messageInput.value.trim();
 
-    if (messageContent && stompClient) {
+
+    if (!messageContent || !stompClient) return;
+
+    if (!(room === 'General' || room === 'Random' || room === 'Help')) {
+        // ✅ Send private message
+        sendPrivateMessage(room, messageContent);
+    } else {
+        // ✅ Send group message
         const chatMessage = {
             sender: username,
             content: messageContent,
@@ -75,10 +61,28 @@ function sendMessage() {
             chatRoom: room
         };
         stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
-        messageInput.value = '';
+        onMessageReceived(chatMessage, false);
+
     }
+    messageInput.value = '';
+
 }
-function onMessageReceived(message) {
+
+function sendPrivateMessage(receiverUsername, content) {
+    const sender = document.getElementById('username').textContent;
+
+    const privateMessage = {
+        sender: sender,
+        receiver: receiverUsername,
+        content: content,
+        type: 'CHAT'
+    };
+
+    stompClient.send("/app/chat.sendPrivate", {}, JSON.stringify(privateMessage));
+}
+
+function onMessageReceived(message, isPrivate) {
+
     const messageArea = document.getElementById('messageArea');
     const messageElement = document.createElement('div');
     messageElement.classList.add('message');
@@ -87,9 +91,9 @@ function onMessageReceived(message) {
         messageElement.classList.add('event-message');
         messageElement.innerHTML = `<em>${message.content}</em>`;
     } else {
-        messageElement.classList.add('chat-message');
+        messageElement.classList.add(isPrivate ? 'private-message' : 'chat-message');
         messageElement.innerHTML = `
-            <strong>${message.sender}:</strong>
+             <strong>${message.sender}:</strong>
             <span>${message.content}</span>
             <span class="timestamp">${new Date().toLocaleTimeString()}</span>
         `;
@@ -98,11 +102,111 @@ function onMessageReceived(message) {
     messageArea.appendChild(messageElement);
     messageArea.scrollTop = messageArea.scrollHeight;
 }
+
+function loadGroupHistory() {
+    const room = document.getElementById('room').textContent;
+    fetch(`/chat/history?room=${room}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+        .then(res => {
+            if (!res.ok || res.headers.get('content-type')?.includes('text/html')) {
+                throw new Error("Unauthorized or bad content");
+            }
+            return res.json();
+        })
+        .then(messages => {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = '';
+            messages.forEach(msg => {
+                onMessageReceived(msg, false);
+            });
+        })
+        .catch(err => {
+            console.error("Error loading group history:", err);
+        });
+}
+
+function loadPrivateHistory(withUser) {
+    fetch(`/chat/private/history?with=${withUser}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+        .then(res => {
+            if (!res.ok || res.headers.get('content-type')?.includes('text/html')) {
+                throw new Error("Unauthorized or bad content");
+            }
+            return res.json();
+        })
+        .then(messages => {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = '';
+            messages.forEach(msg => {
+                onMessageReceived(msg, true);
+            });
+        })
+        .catch(err => {
+            console.error("Failed to load private messages", err);
+        });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     connect();
+    function handleLinkClick(isPrivate) {
+        return function(e) {
+            e.preventDefault();
+
+            document.querySelectorAll('.private-link, .room-link').forEach(l => l.classList.remove('active'));
+
+            this.classList.add('active');
+
+            const selectedUser = this.getAttribute('data-user');
+            updateChatHeading(isPrivate, selectedUser);
+
+            document.getElementById('room').textContent = selectedUser;
+
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = '';
+
+            if (currentRoomSubscription) {
+                currentRoomSubscription.unsubscribe();
+                currentRoomSubscription = null;
+            }
+            if (!isPrivate) {
+                currentRoomSubscription = stompClient.subscribe(`/topic/${selectedUser}`, function(message) {
+                    onMessageReceived(JSON.parse(message.body), false);
+                });
+                const chatMessage = {
+                    sender: document.getElementById('username').textContent,
+                    content: `${document.getElementById('username').textContent} joined!`,
+                    type: 'JOIN',
+                    chatRoom: selectedUser
+                };
+                stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
+                loadGroupHistory();
+            } else {
+                loadPrivateHistory(selectedUser);
+            }
+        };
+    }
+
+    document.querySelectorAll('.private-link').forEach(link => {
+        link.addEventListener('click', handleLinkClick(true));
+    });
+
+    document.querySelectorAll('.room-link').forEach(link => {
+        link.addEventListener('click', handleLinkClick(false));
+    });
 
     const messageInput = document.getElementById('message');
     const sendButton = document.getElementById('sendButton');
+
 
     messageInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -111,46 +215,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     sendButton.addEventListener('click', sendMessage);
-});
-document.getElementById('fileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        // Handle file upload (e.g., via Fetch API or form submission)
-        console.log('Selected file:', file.name);
-    }
-});
 
-document.addEventListener('DOMContentLoaded', function () {
-    const loadHistoryButton = document.getElementById('loadHistoryButton');
-    const messageArea = document.getElementById('messageArea');
-    const room = document.getElementById('room').textContent;
-    const token = localStorage.getItem("jwt");
-
-    loadHistoryButton.addEventListener('click', function () {
-        fetch(`/chat/history?room=${room}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
-            .then(res => {
-                if (!res.ok) throw new Error("Unauthorized or not found");
-                return res.json();
-            })
-            .then(messages => {
-                messages.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.classList.add('message', 'chat-message');
-                    div.innerHTML = `
-                        <strong>${msg.sender}:</strong>
-                        <span>${msg.content}</span>
-                        <span class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</span>
-                    `;
-                    messageArea.appendChild(div);
-                });
-            })
-            .catch(err => {
-                console.error("Error loading history:", err);
-                alert("Unable to load message history.");
-            });
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Handle file upload (e.g., via Fetch API or form submission)
+            console.log('Selected file:', file.name);
+        }
     });
 });
+function updateChatHeading(isPrivate, title) {
+    const headingEl = document.getElementById('heading');
+    if (isPrivate) {
+        headingEl.innerHTML = `Chat Room: <span  id="room" >${title}</span>`;
+    } else {
+        headingEl.innerHTML = `Chat Room: <span  id="room" >${title}</span>`;
+    }
+}
+

@@ -14,12 +14,16 @@ public class Message {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "chatroom_id",  nullable = false)
+    @JoinColumn(name = "chatroom_id",  nullable = true)
     private ChatRoom chatRoom;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User sender;
+
+    @ManyToOne
+    @JoinColumn(name = "receiver_id")
+    private User receiver;
 
     private String filePath;
 

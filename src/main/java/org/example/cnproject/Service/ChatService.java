@@ -34,19 +34,9 @@ public class ChatService{
 
 
     public void sendMessage(ChatMessage chatMessage) {
-        User sender = userRepository.findByUsername(chatMessage.getSender());
+
         ChatRoom chatRoom = chatRoomRepository.findByName(chatMessage.getChatRoom());
-
-        Message message = new Message();
-        message.setContent(chatMessage.getContent());
-        message.setTimestamp(new Date());
-        message.setSender(sender);
-        message.setChatRoom(chatRoom);
-        message.setFilePath(chatMessage.getFileUrl());
-
-        messageRepository.save(message);
-
-        messagingTemplate.convertAndSend("/topic/" + chatMessage.getChatRoom(), chatMessage);
+        messagingTemplate.convertAndSend("/topic/" + chatRoom, chatMessage);
     }
 
     public void saveMessage(ChatMessage chatMessage) {
@@ -54,17 +44,24 @@ public class ChatService{
             return;
         }
 
+
         ChatRoom chatRoom = chatRoomRepository.findByName(chatMessage.getChatRoom());
         User sender = userRepository.findByUsername(chatMessage.getSender());
-
-        if(chatRoom == null || sender == null) {
-            throw new IllegalArgumentException("Invalid chat room or sender");
+        if(sender == null) {
+            throw new IllegalArgumentException("Invalid sender");
+        }
+        if(chatRoom == null) {
+            throw new IllegalArgumentException("Invalid chat room");
         }
 
         Message message = new Message();
         message.setContent(chatMessage.getContent());
         message.setChatRoom(chatRoom);
         message.setSender(sender);
+        if(chatMessage.getReceiver() != null){
+            User receiver = userRepository.findByUsername(chatMessage.getReceiver());
+            message.setReceiver(receiver);
+        }
         message.setTimestamp(new Date());
 
         messageRepository.save(message);
@@ -97,5 +94,16 @@ public class ChatService{
                     return chatMessage;
                 })
                 .toList();
+    }
+
+    public List<Message> findReceiver(User sender, User receiver) {
+        return messageRepository.findConversationBetween(sender, receiver);
+    }
+
+    public void sendPrivateMessage(ChatMessage chatMessage) {
+        String receiver = chatMessage.getReceiver();
+        String sender = chatMessage.getSender();
+        messagingTemplate.convertAndSendToUser(receiver,"/queue/private", chatMessage);
+        messagingTemplate.convertAndSendToUser(sender,"/queue/private", chatMessage);
     }
 }
