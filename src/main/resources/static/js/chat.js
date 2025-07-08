@@ -3,8 +3,8 @@ let currentRoomSubscription = null;
 
 function connect() {
 
-    const username = document.getElementById('username').textContent;
-    const room = document.getElementById('room').textContent;
+    // const username = document.getElementById('username').textContent;
+    // const room = document.getElementById('room').textContent;
 
     const socket = new SockJS('/ws');
     stompClient = Stomp.over(socket);
@@ -16,20 +16,32 @@ function connect() {
         // stompClient.subscribe(`/topic/${room}`, function(message) {
         //     onMessageReceived(JSON.parse(message.body));
         // });
+        ['General', 'Random', 'Help'].forEach(room => {
+            stompClient.subscribe(`/topic/${room}`, function (message) {
+                const currentRoom = document.getElementById('room').textContent;
+                const msg = JSON.parse(message.body);
+console.log(currentRoom.toLowerCase())
+                // Only display message if user is currently in that room
+                if (msg.chatRoom === currentRoom) {
+                    onMessageReceived(msg, false);
+                }
+            });
+        });
 
         stompClient.subscribe('/user/queue/private', function(message) {
             const privateMsg = JSON.parse(message.body);
             onMessageReceived(privateMsg); // show in chat window or popup
         });
-
+        const defaultRoom = document.querySelector('.room-link.active') || document.querySelector('.room-link');
+        if (defaultRoom) defaultRoom.click();
         // Tell server the user has joined
-        const chatMessage = {
-            sender: username,
-            content: `${username} joined!`,
-            type: 'JOIN',
-            chatRoom: room
-        };
-        stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
+        // const chatMessage = {
+        //     sender: username,
+        //     content: `${username} joined!`,
+        //     type: 'JOIN',
+        //     chatRoom: room
+        // };
+        // stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
     }, onError);
 }
 
@@ -58,10 +70,11 @@ function sendMessage() {
             sender: username,
             content: messageContent,
             type: 'CHAT',
-            chatRoom: room
+            chatRoom: room,
+            timestamp: new Date().toISOString(),
         };
         stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
-        onMessageReceived(chatMessage, false);
+       // onMessageReceived(chatMessage, false);
 
     }
     messageInput.value = '';
@@ -75,7 +88,8 @@ function sendPrivateMessage(receiverUsername, content) {
         sender: sender,
         receiver: receiverUsername,
         content: content,
-        type: 'CHAT'
+        type: 'CHAT',
+        timestamp: new Date().toISOString(),
     };
 
     stompClient.send("/app/chat.sendPrivate", {}, JSON.stringify(privateMessage));
@@ -86,8 +100,14 @@ function onMessageReceived(message, isPrivate) {
     const messageArea = document.getElementById('messageArea');
     const messageElement = document.createElement('div');
     messageElement.classList.add('message');
+    const formattedTime = new Date(message.timestamp).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    });
 
-    if (message.type === 'JOIN' || message.type === 'LEAVE') {
+    if (!isPrivate && (message.type === 'JOIN' || message.type === 'LEAVE')) {
         messageElement.classList.add('event-message');
         messageElement.innerHTML = `<em>${message.content}</em>`;
     } else {
@@ -95,7 +115,7 @@ function onMessageReceived(message, isPrivate) {
         messageElement.innerHTML = `
              <strong>${message.sender}:</strong>
             <span>${message.content}</span>
-            <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+            <span class="timestamp">${formattedTime}</span>
         `;
     }
 
@@ -103,8 +123,7 @@ function onMessageReceived(message, isPrivate) {
     messageArea.scrollTop = messageArea.scrollHeight;
 }
 
-function loadGroupHistory() {
-    const room = document.getElementById('room').textContent;
+function loadGroupHistory(room) {
     fetch(`/chat/history?room=${room}`, {
         method: 'GET',
         credentials: 'include',
@@ -156,45 +175,48 @@ function loadPrivateHistory(withUser) {
         });
 }
 
+function handleLinkClick(isPrivate) {
+    return function(e) {
+        e.preventDefault();
+
+        document.querySelectorAll('.private-link, .room-link').forEach(l => l.classList.remove('active'));
+
+        this.classList.add('active');
+
+        const selectedUser = this.getAttribute('data-user');
+        updateChatHeading(isPrivate, selectedUser);
+
+        const room = document.getElementById('room');
+        room.textContent = selectedUser;
+
+        const messageArea = document.getElementById('messageArea');
+        messageArea.innerHTML = '';
+
+        if (currentRoomSubscription) {
+            currentRoomSubscription.unsubscribe();
+            currentRoomSubscription = null;
+        }
+        if (!isPrivate) {
+            // currentRoomSubscription = stompClient.subscribe(`/topic/${selectedUser}`, function(message) {
+            //     onMessageReceived(JSON.parse(message.body), false);
+            // });
+            // const chatMessage = {
+            //     sender: document.getElementById('username').textContent,
+            //     content: `${document.getElementById('username').textContent} joined!`,
+            //     type: 'JOIN',
+            //     chatRoom: selectedUser
+            // };
+            // stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
+            console.log(room.textContent);
+            loadGroupHistory(room.textContent);
+        } else {
+            loadPrivateHistory(selectedUser);
+        }
+    };
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     connect();
-    function handleLinkClick(isPrivate) {
-        return function(e) {
-            e.preventDefault();
-
-            document.querySelectorAll('.private-link, .room-link').forEach(l => l.classList.remove('active'));
-
-            this.classList.add('active');
-
-            const selectedUser = this.getAttribute('data-user');
-            updateChatHeading(isPrivate, selectedUser);
-
-            document.getElementById('room').textContent = selectedUser;
-
-            const messageArea = document.getElementById('messageArea');
-            messageArea.innerHTML = '';
-
-            if (currentRoomSubscription) {
-                currentRoomSubscription.unsubscribe();
-                currentRoomSubscription = null;
-            }
-            if (!isPrivate) {
-                currentRoomSubscription = stompClient.subscribe(`/topic/${selectedUser}`, function(message) {
-                    onMessageReceived(JSON.parse(message.body), false);
-                });
-                const chatMessage = {
-                    sender: document.getElementById('username').textContent,
-                    content: `${document.getElementById('username').textContent} joined!`,
-                    type: 'JOIN',
-                    chatRoom: selectedUser
-                };
-                stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
-                loadGroupHistory();
-            } else {
-                loadPrivateHistory(selectedUser);
-            }
-        };
-    }
 
     document.querySelectorAll('.private-link').forEach(link => {
         link.addEventListener('click', handleLinkClick(true));

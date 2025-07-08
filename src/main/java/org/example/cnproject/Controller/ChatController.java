@@ -36,12 +36,12 @@ public class ChatController {
     private SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/chat.sendMessage")
-    @SendTo("/topic/public")
+    //@SendTo("/topic/public")
     public ChatMessage sendMessage(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
         String sender = (String)  Objects.requireNonNull(headerAccessor.getSessionAttributes()).get("username");
         chatMessage.setSender(sender);
-        chatService.sendMessage(chatMessage);
         chatService.saveMessage(chatMessage);
+        chatService.sendMessage(chatMessage);
         return chatMessage;
     }
 

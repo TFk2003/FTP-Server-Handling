@@ -34,9 +34,12 @@ public class ChatService{
 
 
     public void sendMessage(ChatMessage chatMessage) {
+        System.out.println("Sending message to room: " + chatMessage.getChatRoom());
 
         ChatRoom chatRoom = chatRoomRepository.findByName(chatMessage.getChatRoom());
-        messagingTemplate.convertAndSend("/topic/" + chatRoom, chatMessage);
+        String topic = "/topic/" + chatRoom.getName();
+        System.out.println("Full topic path: " + topic);
+        messagingTemplate.convertAndSend("/topic/" + chatRoom.getName(), chatMessage);
     }
 
     public void saveMessage(ChatMessage chatMessage) {
