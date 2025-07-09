@@ -46,7 +46,7 @@ public class FileController {
                 files.addAll(ftpService.listUserFiles(user.getUsername()));
             }
             model.addAttribute("files", files);
-        } catch (IOException e) {
+        } catch (IOException e ) {
             model.addAttribute("error", "Error connecting to FTP server. Please try again.");
             e.printStackTrace();
         }

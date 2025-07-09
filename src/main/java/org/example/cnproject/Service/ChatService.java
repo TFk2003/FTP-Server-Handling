@@ -93,7 +93,7 @@ public class ChatService{
                     chatMessage.setChatRoom(chatRoom.getName());
                     chatMessage.setTimestamp(msg.getTimestamp().toString());
                     chatMessage.setType(ChatMessage.MessageType.CHAT);
-                    chatMessage.setFileUrl(msg.getFilePath()); // Optional
+                     // Optional
                     return chatMessage;
                 })
                 .toList();

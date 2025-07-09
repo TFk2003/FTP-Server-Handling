@@ -25,8 +25,6 @@ public class Message {
     @JoinColumn(name = "receiver_id")
     private User receiver;
 
-    private String filePath;
-
     private String content;
     private Date timestamp;
 

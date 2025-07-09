@@ -238,12 +238,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
     sendButton.addEventListener('click', sendMessage);
 
-    document.getElementById('fileInput').addEventListener('change', function(e) {
+    document.getElementById('fileInput').addEventListener('change', function (e) {
         const file = e.target.files[0];
-        if (file) {
-            // Handle file upload (e.g., via Fetch API or form submission)
-            console.log('Selected file:', file.name);
-        }
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/files/upload", {
+            method: "POST",
+            body: formData,
+            credentials: "same-origin" // 🔸 important to maintain session (for Spring Security)
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("Upload failed");
+                return res.text();
+            })
+            .then(() => {
+                const username = document.getElementById("username").textContent;
+                const room = document.getElementById("room").textContent;
+
+                const chatMessage = {
+                    sender: username,
+                    content: `${username} uploaded file: <a href="/files/download/${username}/${file.name}" target="_blank">${file.name}</a>`,
+                    type: "CHAT",
+                    chatRoom: room,
+                    timestamp: new Date().toISOString()
+                };
+
+                stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
+            })
+            .catch(err => {
+                alert("Upload failed: " + err.message);
+                console.error("Upload error:", err);
+            });
     });
 });
 function updateChatHeading(isPrivate, title) {
