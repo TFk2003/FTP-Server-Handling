@@ -1,7 +1,7 @@
 package org.example.cnproject.Service;
 
 import org.apache.commons.net.ftp.FTP;
-import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPSClient;
 import org.example.cnproject.DTO.FileInfo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +36,8 @@ public class FTPService {
     private String baseDirectory;
 
     public String uploadFile(MultipartFile file, String username) throws IOException, InterruptedException {
-        FTPClient ftpClient = new FTPClient();
+        FTPSClient ftpClient = new FTPSClient(false);
+        ftpClient.execPROT("P");
         int retryCount = 0;
         final int MAX_RETRIES = 2;
         while (retryCount < MAX_RETRIES) {
@@ -97,13 +98,13 @@ public class FTPService {
         }
         throw new IOException("All upload attempts failed");
     }
-    private void printFtpReplies(FTPClient ftp) {
+    private void printFtpReplies(FTPSClient ftp) {
         for (String reply : ftp.getReplyStrings()) {
             System.out.println("FTP: " + reply);
         }
     }
     public List<FileInfo> listUserFiles(String username) throws IOException {
-        FTPClient ftpClient = new FTPClient();
+        FTPSClient ftpClient = new FTPSClient();
         ftpClient.connect(host, port);
         ftpClient.login(this.username2, this.password);
         ftpClient.enterLocalPassiveMode();
@@ -128,7 +129,7 @@ public class FTPService {
     }
 
     public InputStream downloadFile(String username, String filename) throws IOException {
-        FTPClient ftpClient = new FTPClient();
+        FTPSClient ftpClient = new FTPSClient();
         ftpClient.connect(host, port);
         ftpClient.login(this.username2, this.password);
         ftpClient.enterLocalPassiveMode();
