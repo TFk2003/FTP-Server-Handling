@@ -37,7 +37,6 @@ public class FTPService {
 
     public String uploadFile(MultipartFile file, String username) throws IOException, InterruptedException {
         FTPSClient ftpClient = new FTPSClient(false);
-        ftpClient.execPROT("P");
         int retryCount = 0;
         final int MAX_RETRIES = 2;
         while (retryCount < MAX_RETRIES) {
@@ -55,6 +54,8 @@ public class FTPService {
             if (!ftpClient.login(username2, password)) {
                 throw new IOException("Login failed. Server response: " + ftpClient.getReplyString());
             }
+            ftpClient.execPBSZ(0);
+            ftpClient.execPROT("P");
             System.out.println("Login successful. Reply: " + ftpClient.getReplyString());
             ftpClient.enterLocalPassiveMode();
             ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
