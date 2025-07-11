@@ -22,6 +22,7 @@ public class CnProjectApplication {
             setIfAbsent("GOOGLE_CLIENT_SECRET", dotenv.get("GOOGLE_CLIENT_SECRET"));
             setIfAbsent("GITHUB_CLIENT_ID", dotenv.get("GITHUB_CLIENT_ID"));
             setIfAbsent("GITHUB_CLIENT_SECRET", dotenv.get("GITHUB_CLIENT_SECRET"));
+            setIfAbsent("FTP_SERVERHOST", dotenv.get("FTP_SERVERHOST"));
 
         } catch (Exception ignored) {
             // Will ignore if .env is not found and rely on system environment variables
