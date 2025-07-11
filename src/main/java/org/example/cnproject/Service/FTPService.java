@@ -1,7 +1,7 @@
 package org.example.cnproject.Service;
 
 import org.apache.commons.net.ftp.FTP;
-import org.apache.commons.net.ftp.FTPSClient;
+import org.apache.commons.net.ftp.FTPClient;
 import org.example.cnproject.DTO.FileInfo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +36,7 @@ public class FTPService {
     private String baseDirectory;
 
     public String uploadFile(MultipartFile file, String username) throws IOException, InterruptedException {
-        FTPSClient ftpClient = new FTPSClient(false);
+        FTPClient ftpClient = new FTPClient();
         int retryCount = 0;
         final int MAX_RETRIES = 2;
         while (retryCount < MAX_RETRIES) {
@@ -54,25 +54,48 @@ public class FTPService {
             if (!ftpClient.login(username2, password)) {
                 throw new IOException("Login failed. Server response: " + ftpClient.getReplyString());
             }
-            ftpClient.execPBSZ(0);
-            ftpClient.execPROT("P");
+           // ftpClient.execPBSZ(0);
+           // ftpClient.execPROT("P");
             System.out.println("Login successful. Reply: " + ftpClient.getReplyString());
             ftpClient.enterLocalPassiveMode();
+            ftpClient.setRemoteVerificationEnabled(false); // disables host check
+
             ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
             ftpClient.setBufferSize(1024 * 1024);
             System.out.println("Passive mode: " + ftpClient.getPassiveHost() + ":" + ftpClient.getPassivePort());
             String userDir = baseDirectory + "/" + username;
+            System.out.println("Target directory: " + userDir);
+
+            if (!userDir.startsWith("/htdocs")) {
+                System.err.println("Unsafe directory path: " + userDir);
+                if (retryCount < MAX_RETRIES - 1) {
+                    retryCount++;
+                    Thread.sleep(1000);
+                    continue;  // retry once
+                } else {
+                    throw new IOException("Unsafe directory path after retry: " + userDir);
+                }
+            }
             if (!ftpClient.changeWorkingDirectory(userDir)) {
+                System.out.println("Creating user directory: " + userDir);
                 if (!ftpClient.makeDirectory(userDir)) {
                     throw new IOException("Couldn't create user directory" + ftpClient.getReplyString());
+                }
+                if (!ftpClient.changeWorkingDirectory(userDir)) {
+                    throw new IOException("Failed to change to the new directory: " + userDir);
                 }
             }
             System.out.println("Uploading: " + file.getOriginalFilename());
             try (InputStream inputStream = file.getInputStream()) {
-                if (!ftpClient.storeFile(file.getOriginalFilename(), inputStream)) {
+                boolean success = ftpClient.storeFile(file.getOriginalFilename(), inputStream);
+                System.out.println("File store success: " + success);
+                System.out.println("Reply: " + ftpClient.getReplyString());
+
+                if (!success) {
                     throw new IOException("FTP store command failed");
                 }
             }
+
             return "/files/download/" + username + "/" + file.getOriginalFilename();
         } catch (IOException e) {
             System.err.println("Attempt #" + (retryCount + 1) + " failed: " + e.getMessage());
@@ -99,16 +122,28 @@ public class FTPService {
         }
         throw new IOException("All upload attempts failed");
     }
-    private void printFtpReplies(FTPSClient ftp) {
+    private void printFtpReplies(FTPClient ftp) {
         for (String reply : ftp.getReplyStrings()) {
             System.out.println("FTP: " + reply);
         }
     }
     public List<FileInfo> listUserFiles(String username) throws IOException {
-        FTPSClient ftpClient = new FTPSClient();
+        FTPClient ftpClient = new FTPClient();
+        ftpClient.setConnectTimeout(30000);
+        ftpClient.setDataTimeout(60000);
+        ftpClient.setControlKeepAliveTimeout(300);
+        ftpClient.setAutodetectUTF8(true);
+
         ftpClient.connect(host, port);
-        ftpClient.login(this.username2, this.password);
+        if (!ftpClient.login(this.username2, this.password)) {
+            throw new IOException("Login failed: " + ftpClient.getReplyString());
+        }
+        //ftpClient.execPBSZ(0);
+        //ftpClient.execPROT("P");
+
         ftpClient.enterLocalPassiveMode();
+        ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+
 
         String userDirectory = baseDirectory + "/" + username;
         List<FileInfo> files = new ArrayList<>();
@@ -130,7 +165,7 @@ public class FTPService {
     }
 
     public InputStream downloadFile(String username, String filename) throws IOException {
-        FTPSClient ftpClient = new FTPSClient();
+        FTPClient ftpClient = new FTPClient();
         ftpClient.connect(host, port);
         ftpClient.login(this.username2, this.password);
         ftpClient.enterLocalPassiveMode();
