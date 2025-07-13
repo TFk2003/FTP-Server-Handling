@@ -19,7 +19,9 @@
             <label for="password">Password:</label>
             <input type="password" id="password" th:field="*{password}" required placeholder="Enter your password">
         </div>
-        <div id="error" class="error-message" style="color:red;"></div>
+        <div th:if="${param.error}" class="error-message" style="color: red;">
+            <p>Invalid username or password.</p>
+        </div>
         <button type="submit">Login</button>
         <div class="divider">OR</div>
         <div class="oauth-buttons">

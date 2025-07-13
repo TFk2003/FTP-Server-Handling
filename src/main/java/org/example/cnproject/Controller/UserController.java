@@ -36,6 +36,7 @@ public class UserController {
         }
         catch (Exception e) {
             System.out.println("Login failed: " + e.getMessage());
+            model.addAttribute("error", "Invalid username or password. Please try again.");
             return "login";
         }
     }

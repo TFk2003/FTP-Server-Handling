@@ -62,7 +62,7 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/login")
                         .successHandler(jwtAuthenticationSuccessHandler) // JWT + Redirect
-                        .failureUrl("/login?error=true")
+                        .failureUrl("/login?error=true&error_message=%s")
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage("/login")
@@ -73,6 +73,7 @@ public class SecurityConfig {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json");
                             response.getWriter().write("{\"error\":\"Unauthorized\"}");
+                            response.sendRedirect("/login");
                         })
                 )
                 .oauth2Login(Customizer.withDefaults())
