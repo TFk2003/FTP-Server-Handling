@@ -150,6 +150,8 @@ public class FTPService {
 
         if (ftpClient.changeWorkingDirectory(userDirectory)) {
             for (org.apache.commons.net.ftp.FTPFile ftpFile : ftpClient.listFiles()) {
+                String name = ftpFile.getName();
+                if (name.equals(".") || name.equals("..")) continue;
                 FileInfo fileInfo = new FileInfo();
                 fileInfo.setName(ftpFile.getName());
                 fileInfo.setSize(ftpFile.getSize());
