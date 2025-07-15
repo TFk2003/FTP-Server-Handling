@@ -76,6 +76,13 @@ public class SecurityConfig {
                             response.sendRedirect("/login");
                         })
                 )
+                .logout(logout -> logout
+                        .logoutUrl("/logout")                     // Endpoint that performs logout
+                        .logoutSuccessUrl("/login?logout")        // Where to go after logout
+                        .invalidateHttpSession(true)              // Kill session
+                        .deleteCookies("JWT", "JSESSIONID")       // Delete cookies
+                        .clearAuthentication(true)                // Clear SecurityContext
+                )
                 .oauth2Login(Customizer.withDefaults())
                 .build();
     }

@@ -22,6 +22,9 @@
         <div th:if="${param.error}" class="error-message" style="color: red;">
             <p>Invalid username or password.</p>
         </div>
+        <div th:if="${param.logout}" style="color: green;">
+            <p>You have been logged out.</p>
+        </div>
         <button type="submit">Login</button>
         <div class="divider">OR</div>
         <div class="oauth-buttons">

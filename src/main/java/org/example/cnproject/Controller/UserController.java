@@ -7,7 +7,9 @@ import org.example.cnproject.DTO.LoginRequest;
 import org.example.cnproject.Model.User;
 import org.example.cnproject.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -22,7 +24,10 @@ public class UserController {
     private final BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder(12);
 
     @GetMapping("/login")
-    public String showLoginPage(Model model) {
+    public String showLoginPage(Model model, @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails != null) {
+            return "redirect:/chat";
+        }
         model.addAttribute("loginRequest", new LoginRequest());
         return "login";
     }
@@ -64,15 +69,16 @@ public class UserController {
         return "redirect:/login";
     }
 
-    @GetMapping("/logout")
-    public String handleLogout(HttpServletRequest request, HttpServletResponse response) {
-        SecurityContextHolder.clearContext();
-        Cookie cookie = new Cookie("JWT", null);
-        cookie.setMaxAge(0);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        response.addCookie(cookie);
-        response.setHeader("Authorization", "");
-        return "redirect:/login";
-    }
+//    @GetMapping("/logout")
+//    public String handleLogout(HttpServletRequest request, HttpServletResponse response, @AuthenticationPrincipal UserDetails userDetails) {
+//        SecurityContextHolder.clearContext();
+//        Cookie cookie = new Cookie("JWT", null);
+//        cookie.setMaxAge(0);
+//        cookie.setPath("/");
+//        cookie.setHttpOnly(true);
+//        response.addCookie(cookie);
+//        response.setHeader("Authorization", "");
+//        userDetails = null;
+//        return "redirect:/login";
+//    }
 }
